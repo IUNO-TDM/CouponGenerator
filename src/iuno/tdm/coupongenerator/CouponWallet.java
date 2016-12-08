@@ -1,15 +1,15 @@
 package iuno.tdm.coupongenerator;
 
-import org.bitcoinj.core.BlockChain;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.PeerGroup;
+import org.bitcoinj.core.*;
 import org.bitcoinj.core.listeners.DownloadProgressTracker;
 import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.store.SPVBlockStore;
+import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -89,7 +89,6 @@ public class CouponWallet {
     public void startWalletSystem() {
         peerGroup.start();
         peerGroup.addPeerDiscovery(new DnsDiscovery(params));
-        peerGroup.startBlockChainDownload(new DownloadProgressTracker());
     }
 
     public void downloadBlockChain() {
@@ -98,5 +97,45 @@ public class CouponWallet {
 
     public void stopWalletSystem() {
         peerGroup.stop();
+    }
+
+    void generateCoupons(int number, Coin value) throws InsufficientMoneyException {
+        SendRequest sr;
+
+        Transaction tx = new Transaction(params);
+
+        ArrayList<ECKey> coupons = new ArrayList<>();
+        for (int i = 0; i < number; i++) {
+            ECKey ek = couponWallet.freshReceiveKey();
+            coupons.add(ek);
+            tx.addOutput(value, ek.toAddress(params));
+            System.out.printf(ek.toString());
+        }
+
+        System.out.println(tx.toString());
+        sr = SendRequest.forTx(tx);
+        System.out.println("new: " + sr.toString());
+        feedWallet.completeTx(sr);
+        System.out.println("complete: " + sr.toString());
+        try {
+            feedWallet.commitTx(sr.tx);
+            peerGroup.broadcastTransaction(sr.tx).broadcast().get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void showStatus() {
+        System.out.printf("Coupon wallet: %s (%s) %s\n",
+                couponWallet.getBalance().toFriendlyString(),
+                couponWallet.getBalance(Wallet.BalanceType.ESTIMATED).toFriendlyString(),
+                couponWallet.getKeyChainSeed().getMnemonicCode());
+        System.out.printf("Feed wallet: %s (%s) %s\n",
+                feedWallet.getBalance().toFriendlyString(),
+                feedWallet.getBalance(Wallet.BalanceType.ESTIMATED).toFriendlyString(),
+                feedWallet.getKeyChainSeed().getMnemonicCode());
+        System.out.printf("Feed wallet receive address: %s\n", feedWallet.currentReceiveAddress());
+        System.out.flush();
     }
 }

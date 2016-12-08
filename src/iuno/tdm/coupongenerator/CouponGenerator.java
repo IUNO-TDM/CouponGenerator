@@ -1,5 +1,7 @@
 package iuno.tdm.coupongenerator;
 
+import org.bitcoinj.core.Coin;
+
 /**
  * Copyright 2016 TRUMPF Werkzeugmaschinen GmbH + Co. KG
  * Created by Hans-Peter Bock on 07.12.2016.
@@ -18,7 +20,35 @@ package iuno.tdm.coupongenerator;
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class CouponGenerator {
-    public static void main(String args[]) {
-        System.out.println("Hello from Coupon Generator! :)");
+
+    public static void main(String args[]) throws Exception { // todo main shall not throw exceptions
+        if (args.length < 2) {
+            System.out.println("!!! Too few arguments.");
+            return;
+        }
+
+        String command = args[0];
+        String name = args[1];
+
+        boolean createWallets = false;
+
+        if ("init".equals(command)) createWallets = true;
+
+        CouponWallet couponWallet = new CouponWallet(name, createWallets);
+
+        couponWallet.startWalletSystem();
+
+        if ("status".equals(command)) {
+            couponWallet.downloadBlockChain();
+            couponWallet.showStatus();
+
+        } else if (("generate".equals(command)) && (args.length == 4)) {
+            int number = Integer.parseUnsignedInt(args[2]);
+            Coin value = Coin.parseCoin(args[3]);
+            System.out.printf("number: %d - value: %s", number, value.toFriendlyString());
+            couponWallet.generateCoupons(number, value);
+        }
+
+        couponWallet.stopWalletSystem();
     }
 }
