@@ -1,3 +1,5 @@
+package iuno.tdm.coupongenerator;
+
 /**
  * Copyright 2016 TRUMPF Werkzeugmaschinen GmbH + Co. KG
  * Created by Hans-Peter Bock on 07.12.2016.

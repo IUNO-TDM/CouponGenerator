@@ -1,3 +1,5 @@
+package iuno.tdm.coupongenerator;
+
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.PeerGroup;
