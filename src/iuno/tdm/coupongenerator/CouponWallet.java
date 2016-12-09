@@ -117,6 +117,7 @@ public class CouponWallet {
 
         sr = SendRequest.forTx(tx);
         feedWallet.allowSpendingUnconfirmedTransactions();
+        sr.feePerKb = Transaction.REFERENCE_DEFAULT_MIN_TX_FEE;
         feedWallet.completeTx(sr);
         try {
             feedWallet.commitTx(sr.tx);
@@ -130,6 +131,7 @@ public class CouponWallet {
     public void sweepCoupons() throws InsufficientMoneyException {
         downloadBlockChain(); // essential here since coupons can be spent anytime
         SendRequest sr = SendRequest.emptyWallet(feedWallet.currentChangeAddress());
+        sr.feePerKb = Transaction.REFERENCE_DEFAULT_MIN_TX_FEE;
         couponWallet.completeTx(sr);
         try {
             couponWallet.commitTx(sr.tx);
