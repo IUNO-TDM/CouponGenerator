@@ -31,10 +31,12 @@ public class CouponGenerator {
         String name = args[1];
 
         boolean createWallets = false;
+        boolean resetWallets = false;
 
         if ("init".equals(command)) createWallets = true;
+        if ("reset".equals(command)) resetWallets = true;
 
-        CouponWallet couponWallet = new CouponWallet(name, createWallets);
+        CouponWallet couponWallet = new CouponWallet(name, createWallets, resetWallets);
 
         couponWallet.startWalletSystem();
 

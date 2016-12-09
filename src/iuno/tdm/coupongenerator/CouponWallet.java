@@ -45,7 +45,7 @@ public class CouponWallet {
     private static final String WALLETSUFFIX = ".wallet";
 
     // todo enable class to create wallet systems from optional seed
-    public CouponWallet(String couponName, boolean createWallets) throws Exception {
+    public CouponWallet(String couponName, boolean createWallets, boolean resetWallets) throws Exception {
         // construtcor
         String homeDir = System.getProperty("user.home");
         File chainFile = new File(homeDir, couponName + ".spvchain");
@@ -61,19 +61,23 @@ public class CouponWallet {
             feedWallet = new Wallet(params);
             couponWallet = new Wallet(params);
 
-            // eventually remove blockchainfile
-            if (chainFile.exists()) {
-                chainFile.delete();
-            }
-
         } else { // load existing wallet system
             feedWallet = Wallet.loadFromFile(feedWalletFile);
             couponWallet = Wallet.loadFromFile(couponWalletFile);
+            if (resetWallets) {
+                feedWallet.reset();;
+                couponWallet.reset();
+            }
         }
 
         // auto save wallets at least every five seconds
         feedWallet.autosaveToFile(feedWalletFile, 5, TimeUnit.SECONDS, null);
         couponWallet.autosaveToFile(couponWalletFile, 5, TimeUnit.SECONDS, null);
+
+        // eventually remove blockchainfile
+        if ((createWallets || resetWallets) && chainFile.exists()) {
+            chainFile.delete();
+        }
 
         // initialize blockchain file
         List<Wallet> wallets = asList(feedWallet, couponWallet);
