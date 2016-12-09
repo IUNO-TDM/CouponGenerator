@@ -1,7 +1,6 @@
 package iuno.tdm.coupongenerator;
 
 import org.bitcoinj.core.*;
-import org.bitcoinj.core.listeners.DownloadProgressTracker;
 import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.store.SPVBlockStore;
@@ -19,17 +18,17 @@ import static java.util.Arrays.asList;
 /**
  * Copyright 2016 TRUMPF Werkzeugmaschinen GmbH + Co. KG
  * Created by Hans-Peter Bock on 07.12.2016.
- *
+ * <p>
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -99,7 +98,7 @@ public class CouponWallet {
         peerGroup.stop();
     }
 
-    void generateCoupons(int number, Coin value) throws InsufficientMoneyException {
+    public ArrayList<ECKey> generateCoupons(int number, Coin value) throws InsufficientMoneyException {
         SendRequest sr;
 
         Transaction tx = new Transaction(params);
@@ -109,24 +108,35 @@ public class CouponWallet {
             ECKey ek = couponWallet.freshReceiveKey();
             coupons.add(ek);
             tx.addOutput(value, ek.toAddress(params));
-            System.out.printf(ek.toString());
+            System.out.printf("Address / Key: %s / %s\n", ek.toAddress(params), ek.getPrivateKeyAsWiF(params));
         }
 
-        System.out.println(tx.toString());
         sr = SendRequest.forTx(tx);
-        System.out.println("new: " + sr.toString());
+        feedWallet.allowSpendingUnconfirmedTransactions();
         feedWallet.completeTx(sr);
-        System.out.println("complete: " + sr.toString());
         try {
             feedWallet.commitTx(sr.tx);
             peerGroup.broadcastTransaction(sr.tx).broadcast().get();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return coupons;
+    }
 
+    public void sweepCoupons() throws InsufficientMoneyException {
+        downloadBlockChain(); // essential here since coupons can be spent anytime
+        SendRequest sr = SendRequest.emptyWallet(feedWallet.currentChangeAddress());
+        couponWallet.completeTx(sr);
+        try {
+            couponWallet.commitTx(sr.tx);
+            peerGroup.broadcastTransaction(sr.tx).broadcast().get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void showStatus() {
+        downloadBlockChain();
         System.out.printf("Coupon wallet: %s (%s) %s\n",
                 couponWallet.getBalance().toFriendlyString(),
                 couponWallet.getBalance(Wallet.BalanceType.ESTIMATED).toFriendlyString(),
@@ -138,4 +148,5 @@ public class CouponWallet {
         System.out.printf("Feed wallet receive address: %s\n", feedWallet.currentReceiveAddress());
         System.out.flush();
     }
+
 }

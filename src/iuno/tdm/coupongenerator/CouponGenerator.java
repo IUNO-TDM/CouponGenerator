@@ -47,8 +47,10 @@ public class CouponGenerator {
             Coin value = Coin.parseCoin(args[3]);
             System.out.printf("number: %d - value: %s", number, value.toFriendlyString());
             couponWallet.generateCoupons(number, value);
-        }
 
+        } else if ("sweep".equals(command)) {
+            couponWallet.sweepCoupons();
+        }
         couponWallet.stopWalletSystem();
     }
 }
