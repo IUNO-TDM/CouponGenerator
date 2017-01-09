@@ -53,6 +53,7 @@ public class CouponGenerator {
         } else if ("sweep".equals(command)) {
             couponWallet.sweepCoupons();
         }
+
         couponWallet.stopWalletSystem();
     }
 }

@@ -70,6 +70,10 @@ public class CouponWallet {
             }
         }
 
+        // save wallet in case it had been just created or reset
+        feedWallet.saveToFile(feedWalletFile);
+        couponWallet.saveToFile(couponWalletFile);
+
         // auto save wallets at least every five seconds
         feedWallet.autosaveToFile(feedWalletFile, 5, TimeUnit.SECONDS, null);
         couponWallet.autosaveToFile(couponWalletFile, 5, TimeUnit.SECONDS, null);
