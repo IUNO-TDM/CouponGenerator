@@ -7,5 +7,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="org.bitcoinj:bitcoinj-core:0.14.3" level="project" />
+    <orderEntry type="library" name="org.slf4j:slf4j-simple:1.7.21" level="project" />
   </component>
 </module>
