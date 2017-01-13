@@ -54,7 +54,7 @@ public class CouponRedemption {
 
     public CouponRedemption(String wif) {
         org.bitcoinj.core.Context.propagate(new Context(param));
-        ecKey = DumpedPrivateKey.fromBase58(param, wif).getKey();   
+        ecKey = DumpedPrivateKey.fromBase58(param, wif).getKey();
     }
 
     public static void main(String args[]) {
@@ -129,14 +129,13 @@ public class CouponRedemption {
         } catch (InsufficientMoneyException e) {
             e.printStackTrace();
         }
-
     }
 
     private String getUtxoString() {
         URL url;
         String response = "";
         try {
-            url = new URL("http://[::1]:3001/insight-api/addr/" + getAddress() + "/utxo");
+            url = new URL("https://testnet.blockexplorer.com/api/addr/" + getAddress() + "/utxo");
             BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
             String line;
             while ((line = in.readLine()) != null) {
@@ -209,13 +208,21 @@ public class CouponRedemption {
         for (final Transaction tx : transactions.values())
             walletToSweep.addWalletTransaction(new WalletTransaction(WalletTransaction.Pool.UNSPENT, tx));
 
-        SendRequest sr = SendRequest.emptyWallet(Address.fromBase58(param, "mzM2i82Y9e4ZDwQVWqY4HcJbuAHYQdXd7A"));
-        try {
-            final Transaction transaction;
-            transaction = walletToSweep.sendCoinsOffline(sr);
-            ret = BaseEncoding.base16().lowerCase().encode(transaction.bitcoinSerialize());
-        } catch (InsufficientMoneyException e) {
-            e.printStackTrace();
+        Coin dust = Transaction.MIN_NONDUST_OUTPUT;
+        Coin balance = walletToSweep.getBalance();
+
+        if (dust.isLessThan(balance.multiply(2))) {
+            SendRequest sr = SendRequest.emptyWallet(Address.fromBase58(param, "mzM2i82Y9e4ZDwQVWqY4HcJbuAHYQdXd7A"));
+            sr.feePerKb = Transaction.REFERENCE_DEFAULT_MIN_TX_FEE;
+            try {
+                final Transaction transaction;
+                transaction = walletToSweep.sendCoinsOffline(sr);
+                ret = BaseEncoding.base16().lowerCase().encode(transaction.bitcoinSerialize());
+            } catch (InsufficientMoneyException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("Too few coins in wallet: " + walletToSweep.getBalance().toFriendlyString());
         }
         return ret;
     }
