@@ -26,9 +26,17 @@ import org.bitcoinj.wallet.KeyChainGroup;
 import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
 import org.bitcoinj.wallet.WalletTransaction;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -37,9 +45,27 @@ import static com.google.common.base.Preconditions.checkState;
  * send all bitcoins available for this private key to a provided bitcoin
  * address.
  */
+
+// cUNuqzcxHMqPVHcTKmWTy1PYmVMB5y1TaNpLUTFFqTYPVGE82sWs: mgDFwLxmQ7PS8rMZQXFLB2p43VWt7xBHTZ
+
 public class CouponRedemption {
+    static private NetworkParameters param = TestNet3Params.get();
+    private ECKey ecKey;
+
+    public CouponRedemption(String wif) {
+        org.bitcoinj.core.Context.propagate(new Context(param));
+        ecKey = DumpedPrivateKey.fromBase58(param, wif).getKey();   
+    }
+
     public static void main(String args[]) {
-        getTx();
+        CouponRedemption coupon = new CouponRedemption("cUNuqzcxHMqPVHcTKmWTy1PYmVMB5y1TaNpLUTFFqTYPVGE82sWs");
+
+        final String response = coupon.getUtxoString();
+        System.out.println(response);
+
+        final Map<Sha256Hash, Transaction> transactions = coupon.getTransactionsForUtxoString(response);
+        String tx = coupon.sweepUtxo(transactions);
+        System.out.println(tx);
     }
 
     static public void getTx() {
@@ -54,7 +80,6 @@ public class CouponRedemption {
         // https://testnet.blockexplorer.com/api/addr/%20mky2vnvS8LcHFdwGjTVKa7PkXSy17e5HRc/utxo
         // [{"address":"mky2vnvS8LcHFdwGjTVKa7PkXSy17e5HRc","txid":"002a9029529d03f357144f5e43de31248d0ac95d3c2fa682d483b58799666e70","vout":0,"scriptPubKey":"76a9143bc74fcc5fdff2df5c9cd0ef10998680a31995b588ac","amount":0.999,"satoshis":99900000,"confirmations":0,"ts":1484140292}]
 
-        NetworkParameters param = TestNet3Params.get();
         org.bitcoinj.core.Context.propagate(new Context(param));
 
         final Sha256Hash utxoHash = Sha256Hash.wrap("002a9029529d03f357144f5e43de31248d0ac95d3c2fa682d483b58799666e70"); // txid
@@ -66,7 +91,6 @@ public class CouponRedemption {
         tx.getConfidence().setConfidenceType(TransactionConfidence.ConfidenceType.BUILDING);
 
         final TransactionOutput output = new TransactionOutput(param, tx, utxoValue, utxoScriptBytes);
-
 
         if (tx.getOutputs().size() > utxoIndex) {
             // Work around not being able to replace outputs on transactions
@@ -89,7 +113,7 @@ public class CouponRedemption {
             tx.addOutput(output);
         }
 
-        ECKey key = DumpedPrivateKey.fromBase58(param, "xxxxxxxx").getKey();
+        ECKey key = DumpedPrivateKey.fromBase58(param, "cUNuqzcxHMqPVHcTKmWTy1PYmVMB5y1TaNpLUTFFqTYPVGE82sWs").getKey();
         final KeyChainGroup group = new KeyChainGroup(param);
         group.importKeys(key);
         Wallet walletToSweep = new Wallet(param, group);
@@ -108,6 +132,97 @@ public class CouponRedemption {
 
     }
 
+    private String getUtxoString() {
+        URL url;
+        String response = "";
+        try {
+            url = new URL("http://[::1]:3001/insight-api/addr/" + getAddress() + "/utxo");
+            BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+            String line;
+            while ((line = in.readLine()) != null) {
+                response += line;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return response;
+    }
+
+    private Map<Sha256Hash, Transaction> getTransactionsForUtxoString(String str) {
+        final JSONArray json = new JSONArray(str);
+
+        System.out.println("Array length: " + json.length());
+
+        final Map<Sha256Hash, Transaction> transactions = new HashMap<Sha256Hash, Transaction>(
+                json.length());
+
+        for (int i = 0; i < json.length(); i++) {
+            final JSONObject jsonObject = json.getJSONObject(i);
+            final String txId = jsonObject.getString("txid");
+            final Sha256Hash utxoHash = Sha256Hash.wrap(txId); // txid
+            final int utxoIndex = jsonObject.getInt("vout"); // vout
+            final byte[] utxoScriptBytes = BaseEncoding.base16().lowerCase().decode(
+                    jsonObject.getString("scriptPubKey"));
+            final Coin utxoValue = Coin.valueOf(jsonObject.getLong("satoshis")); // satoshis
+
+
+            Transaction tx = transactions.get(utxoHash);
+            if (tx == null) {
+                tx = new FakeTransaction(param, utxoHash);
+                tx.getConfidence().setConfidenceType(TransactionConfidence.ConfidenceType.BUILDING);
+                transactions.put(utxoHash, tx);
+            }
+
+            final TransactionOutput output = new TransactionOutput(param, tx, utxoValue, utxoScriptBytes);
+
+            if (tx.getOutputs().size() > utxoIndex) {
+                // Work around not being able to replace outputs on transactions
+                final List<TransactionOutput> outputs = new ArrayList<TransactionOutput>(
+                        tx.getOutputs());
+                final TransactionOutput dummy = outputs.set(utxoIndex, output);
+                checkState(dummy.getValue().equals(Coin.NEGATIVE_SATOSHI),
+                        "Index %s must be dummy output", utxoIndex);
+                // Remove and re-add all outputs
+                tx.clearOutputs();
+                for (final TransactionOutput o : outputs)
+                    tx.addOutput(o);
+            } else {
+                // Fill with dummies as needed
+                while (tx.getOutputs().size() < utxoIndex)
+                    tx.addOutput(new TransactionOutput(param, tx,
+                            Coin.NEGATIVE_SATOSHI, new byte[]{}));
+
+                // Add the real output
+                tx.addOutput(output);
+            }
+        }
+        return transactions;
+    }
+
+    private String sweepUtxo(Map<Sha256Hash, Transaction> transactions) {
+        final KeyChainGroup group = new KeyChainGroup(param);
+        String ret = "";
+        group.importKeys(ecKey);
+        Wallet walletToSweep = new Wallet(param, group);
+
+        walletToSweep.clearTransactions(0);
+        for (final Transaction tx : transactions.values())
+            walletToSweep.addWalletTransaction(new WalletTransaction(WalletTransaction.Pool.UNSPENT, tx));
+
+        SendRequest sr = SendRequest.emptyWallet(Address.fromBase58(param, "mzM2i82Y9e4ZDwQVWqY4HcJbuAHYQdXd7A"));
+        try {
+            final Transaction transaction;
+            transaction = walletToSweep.sendCoinsOffline(sr);
+            ret = BaseEncoding.base16().lowerCase().encode(transaction.bitcoinSerialize());
+        } catch (InsufficientMoneyException e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+
+    private String getAddress() {
+        return ecKey.toAddress(TestNet3Params.get()).toBase58();
+    }
 
     private static class FakeTransaction extends Transaction {
         private final Sha256Hash hash;
