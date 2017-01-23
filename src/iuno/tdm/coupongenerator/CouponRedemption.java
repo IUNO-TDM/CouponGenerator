@@ -68,69 +68,6 @@ public class CouponRedemption {
         System.out.println(tx);
     }
 
-    static public void getTx() {
-
-        // https://groups.google.com/forum/#!topic/bitcoinj/U-fYsNlyFeY
-        // https://groups.google.com/forum/#!searchin/bitcoinj/paper$20wallet|sort:relevance/bitcoinj/evp3jhta_as/S1yTWETyILAJ
-        // code derived from https://github.com/bitcoin-wallet/bitcoin-wallet/blob/master/wallet/src/de/schildbach/wallet/ui/send/RequestWalletBalanceTask.java
-
-        // PUB:  mky2vnvS8LcHFdwGjTVKa7PkXSy17e5HRc
-
-        // https://test-insight.bitpay.com/address/mky2vnvS8LcHFdwGjTVKa7PkXSy17e5HRc
-        // https://testnet.blockexplorer.com/api/addr/%20mky2vnvS8LcHFdwGjTVKa7PkXSy17e5HRc/utxo
-        // [{"address":"mky2vnvS8LcHFdwGjTVKa7PkXSy17e5HRc","txid":"002a9029529d03f357144f5e43de31248d0ac95d3c2fa682d483b58799666e70","vout":0,"scriptPubKey":"76a9143bc74fcc5fdff2df5c9cd0ef10998680a31995b588ac","amount":0.999,"satoshis":99900000,"confirmations":0,"ts":1484140292}]
-
-        org.bitcoinj.core.Context.propagate(new Context(param));
-
-        final Sha256Hash utxoHash = Sha256Hash.wrap("002a9029529d03f357144f5e43de31248d0ac95d3c2fa682d483b58799666e70"); // txid
-        final int utxoIndex = 0; // vout
-        final byte[] utxoScriptBytes = BaseEncoding.base16().lowerCase().decode("76a9143bc74fcc5fdff2df5c9cd0ef10998680a31995b588ac");
-        final Coin utxoValue = Coin.valueOf(99900000); // satoshis
-
-        Transaction tx = new FakeTransaction(param, utxoHash);
-        tx.getConfidence().setConfidenceType(TransactionConfidence.ConfidenceType.BUILDING);
-
-        final TransactionOutput output = new TransactionOutput(param, tx, utxoValue, utxoScriptBytes);
-
-        if (tx.getOutputs().size() > utxoIndex) {
-            // Work around not being able to replace outputs on transactions
-            final List<TransactionOutput> outputs = new ArrayList<TransactionOutput>(
-                    tx.getOutputs());
-            final TransactionOutput dummy = outputs.set(utxoIndex, output);
-            checkState(dummy.getValue().equals(Coin.NEGATIVE_SATOSHI),
-                    "Index %s must be dummy output", utxoIndex);
-            // Remove and re-add all outputs
-            tx.clearOutputs();
-            for (final TransactionOutput o : outputs)
-                tx.addOutput(o);
-        } else {
-            // Fill with dummies as needed
-            while (tx.getOutputs().size() < utxoIndex)
-                tx.addOutput(new TransactionOutput(param, tx,
-                        Coin.NEGATIVE_SATOSHI, new byte[]{}));
-
-            // Add the real output
-            tx.addOutput(output);
-        }
-
-        ECKey key = DumpedPrivateKey.fromBase58(param, "cUNuqzcxHMqPVHcTKmWTy1PYmVMB5y1TaNpLUTFFqTYPVGE82sWs").getKey();
-        final KeyChainGroup group = new KeyChainGroup(param);
-        group.importKeys(key);
-        Wallet walletToSweep = new Wallet(param, group);
-
-        walletToSweep.clearTransactions(0);
-        walletToSweep.addWalletTransaction(new WalletTransaction(WalletTransaction.Pool.UNSPENT, tx));
-
-        SendRequest sr = SendRequest.emptyWallet(key.toAddress(param));
-        try {
-            final Transaction transaction;
-            transaction = walletToSweep.sendCoinsOffline(sr);
-            System.out.println(BaseEncoding.base16().lowerCase().encode(transaction.bitcoinSerialize()));
-        } catch (InsufficientMoneyException e) {
-            e.printStackTrace();
-        }
-    }
-
     private String getUtxoString() {
         URL url;
         String response = "";
