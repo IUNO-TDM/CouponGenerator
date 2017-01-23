@@ -52,7 +52,7 @@ public class CouponRedemption {
     static private NetworkParameters param = TestNet3Params.get();
     private ECKey ecKey;
 
-    public CouponRedemption(String wif) {
+    private CouponRedemption(String wif) {
         org.bitcoinj.core.Context.propagate(new Context(param));
         ecKey = DumpedPrivateKey.fromBase58(param, wif).getKey();
     }
@@ -89,8 +89,7 @@ public class CouponRedemption {
 
         System.out.println("Array length: " + json.length());
 
-        final Map<Sha256Hash, Transaction> transactions = new HashMap<Sha256Hash, Transaction>(
-                json.length());
+        final Map<Sha256Hash, Transaction> transactions = new HashMap<>(json.length());
 
         for (int i = 0; i < json.length(); i++) {
             final JSONObject jsonObject = json.getJSONObject(i);
@@ -113,8 +112,7 @@ public class CouponRedemption {
 
             if (tx.getOutputs().size() > utxoIndex) {
                 // Work around not being able to replace outputs on transactions
-                final List<TransactionOutput> outputs = new ArrayList<TransactionOutput>(
-                        tx.getOutputs());
+                final List<TransactionOutput> outputs = new ArrayList<>(tx.getOutputs());
                 final TransactionOutput dummy = outputs.set(utxoIndex, output);
                 checkState(dummy.getValue().equals(Coin.NEGATIVE_SATOSHI),
                         "Index %s must be dummy output", utxoIndex);
@@ -171,7 +169,7 @@ public class CouponRedemption {
     private static class FakeTransaction extends Transaction {
         private final Sha256Hash hash;
 
-        public FakeTransaction(final NetworkParameters params, final Sha256Hash hash) {
+        private FakeTransaction(final NetworkParameters params, final Sha256Hash hash) {
             super(params);
             this.hash = hash;
         }
