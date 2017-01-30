@@ -1,5 +1,6 @@
 package iuno.tdm.coupongenerator;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import org.bitcoinj.core.*;
 import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.params.TestNet3Params;
@@ -9,8 +10,8 @@ import org.bitcoinj.wallet.Wallet;
 import org.bitcoinj.wallet.WalletTransaction;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
@@ -103,8 +104,22 @@ public class CouponWallet {
         peerGroup.stop();
     }
 
-    public ArrayList<ECKey> generateCoupons(int number, Coin value) throws InsufficientMoneyException {
-        return _generateCoupons(number, value);
+    public ArrayList<ECKey> generateCoupons(int number, Coin value) throws InsufficientMoneyException, ExecutionException, InterruptedException {
+        ArrayList<ECKey> ret = new ArrayList<ECKey>();
+        while (0 < number) {
+            int nextBlockHeight = blockChain.getChainHead().getHeight() + 1;
+            ListenableFuture<StoredBlock> future = blockChain.getHeightFuture(nextBlockHeight);
+
+            int n = Math.min(number, evaluateConfirmedLookAhead());
+            if (0 < n) {
+                ret.addAll(_generateCoupons(n, value));
+                number -= n;
+            } else {
+                System.out.println("Waiting for next block at height " + nextBlockHeight + ".");
+                future.get(); // wait for next block
+            }
+        }
+        return ret;
     }
 
     private ArrayList<ECKey> _generateCoupons(int number, Coin value) throws InsufficientMoneyException {
@@ -157,17 +172,23 @@ public class CouponWallet {
                 feedWallet.getBalance(Wallet.BalanceType.ESTIMATED).toFriendlyString(),
                 feedWallet.getKeyChainSeed().getMnemonicCode());
         System.out.printf("Feed wallet receive address: %s\n", feedWallet.currentReceiveAddress());
-        evaluateComfirmedLookAhead();
+        evaluateConfirmedLookAhead();
         System.out.flush();
     }
 
-    private int evaluateComfirmedLookAhead() {
-        int pending = couponWallet.getTransactionPool(WalletTransaction.Pool.PENDING).size();
+    private int evaluateConfirmedLookAhead() {
+        Collection<Transaction> pendingTransactions= couponWallet.getTransactionPool(WalletTransaction.Pool.PENDING).values();
+        int pendingOutputs = 0;
+        for (Transaction tx : pendingTransactions) {
+            System.out.println("pending: " + tx.toString());
+            pendingOutputs += tx.getOutputs().size(); // likely off by one due to change output
+        }
+
         int lookAhead = couponWallet.getActiveKeyChain().getLookaheadSize();
 
-        System.out.printf("pending / lookAhead: ( %d / %d)\n", pending, lookAhead);
+        System.out.printf("pending outputs / lookAhead: %d / %d\n", pendingOutputs, lookAhead);
 
-        return lookAhead - pending;
+        return lookAhead - pendingOutputs;
     }
 
 }
