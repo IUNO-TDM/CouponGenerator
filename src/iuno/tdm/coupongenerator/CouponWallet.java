@@ -72,6 +72,9 @@ public class CouponWallet {
             }
         }
 
+        // wallets configuration
+        feedWallet.allowSpendingUnconfirmedTransactions();
+
         // auto save wallets at least every five seconds
         feedWallet.autosaveToFile(feedWalletFile, 5, TimeUnit.SECONDS, null).saveNow();
         couponWallet.autosaveToFile(couponWalletFile, 5, TimeUnit.SECONDS, null).saveNow();
@@ -136,7 +139,6 @@ public class CouponWallet {
         }
 
         sr = SendRequest.forTx(tx);
-        feedWallet.allowSpendingUnconfirmedTransactions();
         sr.feePerKb = Transaction.REFERENCE_DEFAULT_MIN_TX_FEE;
         feedWallet.completeTx(sr);
         try {
