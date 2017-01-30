@@ -6,6 +6,7 @@ import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.store.SPVBlockStore;
 import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
+import org.bitcoinj.wallet.WalletTransaction;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -103,6 +104,10 @@ public class CouponWallet {
     }
 
     public ArrayList<ECKey> generateCoupons(int number, Coin value) throws InsufficientMoneyException {
+        return _generateCoupons(number, value);
+    }
+
+    private ArrayList<ECKey> _generateCoupons(int number, Coin value) throws InsufficientMoneyException {
         SendRequest sr;
 
         Transaction tx = new Transaction(params);
@@ -152,7 +157,17 @@ public class CouponWallet {
                 feedWallet.getBalance(Wallet.BalanceType.ESTIMATED).toFriendlyString(),
                 feedWallet.getKeyChainSeed().getMnemonicCode());
         System.out.printf("Feed wallet receive address: %s\n", feedWallet.currentReceiveAddress());
+        evaluateComfirmedLookAhead();
         System.out.flush();
+    }
+
+    private int evaluateComfirmedLookAhead() {
+        int pending = couponWallet.getTransactionPool(WalletTransaction.Pool.PENDING).size();
+        int lookAhead = couponWallet.getActiveKeyChain().getLookaheadSize();
+
+        System.out.printf("pending / lookAhead: ( %d / %d)\n", pending, lookAhead);
+
+        return lookAhead - pending;
     }
 
 }
