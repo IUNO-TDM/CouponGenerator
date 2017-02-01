@@ -88,7 +88,7 @@ public class CouponWallet {
         List<Wallet> wallets = asList(feedWallet, couponWallet);
         blockChain = new BlockChain(params, wallets, new SPVBlockStore(params, chainFile));
 
-        // initialize peer groupe
+        // initialize peer group
         peerGroup = new PeerGroup(params, blockChain);
         peerGroup.addWallet(feedWallet);
         peerGroup.addWallet(couponWallet);
@@ -108,7 +108,7 @@ public class CouponWallet {
     }
 
     public ArrayList<ECKey> generateCoupons(int number, Coin value) throws InsufficientMoneyException, ExecutionException, InterruptedException {
-        ArrayList<ECKey> ret = new ArrayList<ECKey>();
+        ArrayList<ECKey> ret = new ArrayList<>();
         while (0 < number) {
             int nextBlockHeight = blockChain.getChainHead().getHeight() + 1;
             ListenableFuture<StoredBlock> future = blockChain.getHeightFuture(nextBlockHeight);
@@ -117,7 +117,10 @@ public class CouponWallet {
             if (0 < n) {
                 ret.addAll(_generateCoupons(n, value));
                 number -= n;
-            } else {
+            }
+
+            // wait for next block if not all coupons could be generated due to look ahead
+            if (0 < number) {
                 System.out.println("Waiting for next block at height " + nextBlockHeight + ".");
                 future.get(); // wait for next block
             }
