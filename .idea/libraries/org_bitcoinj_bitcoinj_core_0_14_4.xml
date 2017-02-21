@@ -1,8 +1,8 @@
 <component name="libraryTable">
-  <library name="org.bitcoinj:bitcoinj-core:0.14.3" type="repository">
-    <properties maven-id="org.bitcoinj:bitcoinj-core:0.14.3" />
+  <library name="org.bitcoinj:bitcoinj-core:0.14.4" type="repository">
+    <properties maven-id="org.bitcoinj:bitcoinj-core:0.14.4" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/bitcoinj/bitcoinj-core/0.14.3/bitcoinj-core-0.14.3.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/bitcoinj/bitcoinj-core/0.14.4/bitcoinj-core-0.14.4.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/1.7.20/slf4j-api-1.7.20.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/com/madgag/spongycastle/core/1.51.0.0/core-1.51.0.0.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/com/google/protobuf/protobuf-java/2.6.1/protobuf-java-2.6.1.jar!/" />
