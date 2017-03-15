@@ -1,6 +1,19 @@
 package iuno.tdm.coupongenerator;
 
 import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.params.TestNet3Params;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * Copyright 2016 TRUMPF Werkzeugmaschinen GmbH + Co. KG
@@ -22,6 +35,7 @@ import org.bitcoinj.core.Coin;
 public class CouponGenerator {
 
     public static void main(String args[]) throws Exception { // todo main shall not throw exceptions
+
         if (args.length < 2) {
             System.out.println("!!! Too few arguments.");
             return;
@@ -48,12 +62,33 @@ public class CouponGenerator {
             int number = Integer.parseUnsignedInt(args[2]);
             Coin value = Coin.parseCoin(args[3]);
             System.out.printf("number: %d - value: %s", number, value.toFriendlyString());
-            couponWallet.generateCoupons(number, value);
+            ArrayList<ECKey> ecKeys = couponWallet.generateCoupons(number, value);
+
+            saveCouponsToFile(value, ecKeys);
+
 
         } else if ("sweep".equals(command)) {
             couponWallet.sweepCoupons();
         }
 
         couponWallet.stopWalletSystem();
+    }
+
+    private static void saveCouponsToFile(Coin couponValue, ArrayList<ECKey> ecKeys) throws IOException {
+        NetworkParameters params = TestNet3Params.get();;
+        String homeDir = System.getProperty("user.home");
+        String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("YYYYMMddHHmmss"));
+        File couponsFile = new File(homeDir,dateStr + "_coupons.csv");
+        FileOutputStream fs = new FileOutputStream(couponsFile,true);
+        PrintStream ps = new PrintStream(fs);
+
+        for(ECKey key: ecKeys){
+
+            ps.println(key.toAddress(params) + "," + key.getPrivateKeyAsWiF(params) + "," + couponValue.toFriendlyString());
+        }
+        ps.flush();
+        fs.flush();
+        ps.close();
+        fs.close();
     }
 }
