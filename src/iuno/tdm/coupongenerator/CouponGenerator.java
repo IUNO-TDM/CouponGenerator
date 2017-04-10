@@ -61,7 +61,7 @@ public class CouponGenerator {
         } else if ((command.equals("generate")) && (args.length == 4)) {
             int number = Integer.parseUnsignedInt(args[2]);
             Coin value = Coin.parseCoin(args[3]);
-            System.out.printf("number: %d - value: %s", number, value.toFriendlyString());
+            System.out.printf("number: %d - value: %s\n", number, value.toFriendlyString());
             ArrayList<ECKey> ecKeys = couponWallet.generateCoupons(number, value);
 
             saveCouponsToFile(value, ecKeys);

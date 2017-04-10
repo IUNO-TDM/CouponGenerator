@@ -109,7 +109,9 @@ public class CouponWallet {
 
     public ArrayList<ECKey> generateCoupons(int number, Coin value) throws InsufficientMoneyException, ExecutionException, InterruptedException {
         ArrayList<ECKey> ret = new ArrayList<>();
-        while (0 < number) {
+
+        while ((0 < number)
+                && (value.multiply(number).isLessThan(feedWallet.getBalance(Wallet.BalanceType.AVAILABLE)))) {
             int nextBlockHeight = blockChain.getChainHead().getHeight() + 1;
             ListenableFuture<StoredBlock> future = blockChain.getHeightFuture(nextBlockHeight);
 
