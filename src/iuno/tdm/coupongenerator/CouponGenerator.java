@@ -47,18 +47,18 @@ public class CouponGenerator {
         boolean createWallets = false;
         boolean resetWallets = false;
 
-        if ("init".equals(command)) createWallets = true;
-        if ("reset".equals(command)) resetWallets = true;
+        if (command.startsWith("init")) createWallets = true;
+        if (command.equals("reset")) resetWallets = true;
 
         CouponWallet couponWallet = new CouponWallet(name, createWallets, resetWallets);
 
         couponWallet.startWalletSystem();
 
-        if ("status".equals(command)) {
+        if (command.equals("status")) {
             couponWallet.downloadBlockChain();
             couponWallet.showStatus();
 
-        } else if (("generate".equals(command)) && (args.length == 4)) {
+        } else if ((command.equals("generate")) && (args.length == 4)) {
             int number = Integer.parseUnsignedInt(args[2]);
             Coin value = Coin.parseCoin(args[3]);
             System.out.printf("number: %d - value: %s", number, value.toFriendlyString());
@@ -66,9 +66,11 @@ public class CouponGenerator {
 
             saveCouponsToFile(value, ecKeys);
 
-
-        } else if ("sweep".equals(command)) {
+        } else if (command.equals("sweep")) {
             couponWallet.sweepCoupons();
+
+        } else {
+            System.out.println("!!! command is unknown");
         }
 
         couponWallet.stopWalletSystem();
@@ -83,7 +85,6 @@ public class CouponGenerator {
         PrintStream ps = new PrintStream(fs);
 
         for(ECKey key: ecKeys){
-
             ps.println(key.toAddress(params) + "," + key.getPrivateKeyAsWiF(params) + "," + couponValue.toFriendlyString());
         }
         ps.flush();
