@@ -67,7 +67,7 @@ public class CouponWallet {
             feedWallet = Wallet.loadFromFile(feedWalletFile);
             couponWallet = Wallet.loadFromFile(couponWalletFile);
             if (resetWallets) {
-                feedWallet.reset();;
+                feedWallet.reset();
                 couponWallet.reset();
             }
         }

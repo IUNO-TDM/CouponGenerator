@@ -77,7 +77,7 @@ public class CouponGenerator {
     }
 
     private static void saveCouponsToFile(Coin couponValue, ArrayList<ECKey> ecKeys) throws IOException {
-        NetworkParameters params = TestNet3Params.get();;
+        NetworkParameters params = TestNet3Params.get();
         String homeDir = System.getProperty("user.home");
         String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("YYYYMMddHHmmss"));
         File couponsFile = new File(homeDir,dateStr + "_coupons.csv");
