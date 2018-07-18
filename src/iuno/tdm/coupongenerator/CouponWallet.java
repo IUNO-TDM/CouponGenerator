@@ -95,11 +95,12 @@ public class CouponWallet {
     }
 
     public void startWalletSystem() {
+        peerGroup.setFastCatchupTimeSecs(1435708800); // 1.7.2015
         peerGroup.start();
         peerGroup.addPeerDiscovery(new DnsDiscovery(params));
     }
 
-    public void downloadBlockChain() {
+    private void downloadBlockChain() {
         peerGroup.downloadBlockChain();
     }
 
@@ -166,6 +167,10 @@ public class CouponWallet {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    String getFeedAddress() {
+        return feedWallet.currentReceiveAddress().toString();
     }
 
     public void showStatus() {

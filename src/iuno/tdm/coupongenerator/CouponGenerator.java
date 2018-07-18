@@ -54,8 +54,14 @@ public class CouponGenerator {
 
         couponWallet.startWalletSystem();
 
-        if (command.equals("status")) {
-            couponWallet.downloadBlockChain();
+        if (command.startsWith("init")) {
+            System.out.printf("Wallet system created.\n");
+            System.out.printf("Address of feed wallet: %s\n", couponWallet.getFeedAddress());
+
+        } else if (command.equals("reset"))
+            System.out.printf("Wallet system reset.\n");
+
+        else if (command.equals("status")) {
             couponWallet.showStatus();
 
         } else if ((command.equals("generate")) && (args.length == 4)) {
